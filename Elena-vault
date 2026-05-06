@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elene-Vault</title>
+
+<style>
+:root{
+  --bg1:#0b0b14;
+  --bg2:#14142b;
+  --accent:#8b5cf6;
+  --glass:rgba(255,255,255,0.05);
+}
+
+body{
+  margin:0;
+  font-family: 'Segoe UI', sans-serif;
+  background:linear-gradient(135deg,var(--bg1),var(--bg2));
+  color:white;
+}
+
+/* HEADER */
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  padding:15px;
+  align-items:center;
+}
+
+h1{
+  background:linear-gradient(45deg,#8b5cf6,#22d3ee);
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+/* SEARCH */
+.search{
+  margin:10px;
+  padding:12px;
+  width:calc(100% - 20px);
+  border-radius:12px;
+  border:none;
+  background:var(--glass);
+  color:white;
+}
+
+/* CARD */
+.card{
+  margin:12px;
+  padding:18px;
+  border-radius:16px;
+  background:var(--glass);
+  backdrop-filter:blur(10px);
+  transition:0.3s;
+}
+
+.card:hover{
+  transform:scale(1.02);
+}
+
+/* BUTTON */
+button{
+  background:linear-gradient(45deg,#6d28d9,#8b5cf6);
+  border:none;
+  padding:10px 14px;
+  border-radius:10px;
+  color:white;
+  margin:5px 5px 0 0;
+}
+
+/* MODAL */
+.modal{
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+
+.modal-box{
+  background:#111;
+  padding:20px;
+  border-radius:12px;
+  width:85%;
+}
+
+/* EDITOR */
+textarea,input{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  border-radius:8px;
+  border:none;
+}
+
+/* TOAST */
+.toast{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#222;
+  padding:10px 15px;
+  border-radius:10px;
+  display:none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <h1>Elene-Vault</h1>
+  <button onclick="login()">Admin</button>
+</div>
+
+<input class="search" placeholder="Cari..." oninput="search(this.value)">
+
+<div style="padding:0 15px;">
+  Total: <span id="count">0</span>
+</div>
+
+<div id="adminBox" style="display:none; padding:10px;">
+  <button onclick="openEditor()">+ Tambah</button>
+</div>
+
+<div id="list"></div>
+
+<!-- MODAL PREVIEW -->
+<div class="modal" id="previewModal">
+  <div class="modal-box">
+    <div id="previewText"></div>
+    <button onclick="closePreview()">Tutup</button>
+  </div>
+</div>
+
+<!-- MODAL EDIT -->
+<div class="modal" id="editModal">
+  <div class="modal-box">
+    <input id="title">
+    <textarea id="text"></textarea>
+    <button onclick="save()">Simpan</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let data=JSON.parse(localStorage.getItem("vault")||"[]");
+let isAdmin=false;
+let current=null;
+let keyword="";
+
+function render(){
+  let html="";
+  let filtered=data.filter(x=>x.title.toLowerCase().includes(keyword));
+
+  document.getElementById("count").innerText=filtered.length;
+
+  filtered.forEach((item,i)=>{
+    let idx=data.indexOf(item);
+
+    html+=`
+    <div class="card">
+      <h2 onclick="preview(${idx})">${item.title}</h2>
+
+      <button onclick="copyText(${idx})">📋</button>
+
+      ${isAdmin?`
+        <button onclick="edit(${idx})">✏️</button>
+        <button onclick="del(${idx})">🗑</button>
+      `:""}
+    </div>`;
+  });
+
+  document.getElementById("list").innerHTML=html;
+}
+
+function showToast(msg){
+  let t=document.getElementById("toast");
+  t.innerText=msg;
+  t.style.display="block";
+  setTimeout(()=>t.style.display="none",1500);
+}
+
+function copyText(i){
+  let t=data[i].text;
+  navigator.clipboard.writeText(t).catch(()=>{});
+  showToast("Dicopy!");
+}
+
+function preview(i){
+  document.getElementById("previewText").innerText=data[i].text;
+  document.getElementById("previewModal").style.display="flex";
+}
+
+function closePreview(){
+  document.getElementById("previewModal").style.display="none";
+}
+
+function login(){
+  let u=prompt("Username:");
+  let p=prompt("Password:");
+
+  if(u==="elene" && p==="EleneOFF"){
+    isAdmin=true;
+    document.getElementById("adminBox").style.display="block";
+    showToast("Admin aktif");
+    render();
+  }else{
+    showToast("Salah");
+  }
+}
+
+function openEditor(){
+  current=null;
+  document.getElementById("editModal").style.display="flex";
+  document.getElementById("title").value="";
+  document.getElementById("text").value="";
+}
+
+function edit(i){
+  current=i;
+  document.getElementById("editModal").style.display="flex";
+  document.getElementById("title").value=data[i].title;
+  document.getElementById("text").value=data[i].text;
+}
+
+function save(){
+  let t=document.getElementById("title").value;
+  let txt=document.getElementById("text").value;
+
+  if(current===null){
+    data.push({title:t,text:txt});
+  }else{
+    data[current]={title:t,text:txt};
+  }
+
+  localStorage.setItem("vault",JSON.stringify(data));
+  document.getElementById("editModal").style.display="none";
+  render();
+  showToast("Disimpan");
+}
+
+function del(i){
+  if(confirm("Hapus?")){
+    data.splice(i,1);
+    localStorage.setItem("vault",JSON.stringify(data));
+    render();
+    showToast("Dihapus");
+  }
+}
+
+function search(v){
+  keyword=v.toLowerCase();
+  render();
+}
+
+if(data.length===0){
+  data=[{title:"REX.ENT",text:"passcode nya: REX.ENT"}];
+  localStorage.setItem("vault",JSON.stringify(data));
+}
+
+render();
+</script>
+
+</body>
+</html>
