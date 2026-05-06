@@ -568,7 +568,19 @@ COMMAND PENYELAMATAN DIRI:
    **Panduan apa yang ingin Anda lakukan lagi?**
   },
 {
-  render();
+  ];
+
+// Gabungkan data dari kode dengan data yang sudah ada di memori browser
+let savedData = JSON.parse(localStorage.getItem("vault") || "[]");
+if(savedData.length === 0) {
+    localStorage.setItem("vault", JSON.stringify(data));
+} else {
+    data = savedData;
+}
+
+render();
 </script>
+
 </body>
 </html>
+
